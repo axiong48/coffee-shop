@@ -1,0 +1,101 @@
+## .gitignore
+
+```gitignore
+# --------------------
+# Python / Flask
+# --------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual environment
+venv/
+env/
+ENV/
+.venv/
+
+# Flask environment files
+.env
+.env.local
+.env.*.local
+
+# Flask instance folder
+instance/
+
+# Python packaging
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Test / coverage
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# Migrations cache
+**/migrations/__pycache__/
+
+# --------------------
+# Node / React / Vite
+# --------------------
+node_modules/
+frontend/node_modules/
+
+# Production builds
+dist/
+frontend/dist/
+build/
+frontend/build/
+
+# Vite
+.vite/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# --------------------
+# OS / Editor files
+# --------------------
+.DS_Store
+.AppleDouble
+.LSOverride
+
+.vscode/
+.idea/
+
+# --------------------
+# Database / local files
+# --------------------
+*.sqlite
+*.sqlite3
+*.db
+
+# PostgreSQL local dump files
+*.dump
+*.sql
+
+# --------------------
+# Misc
+# --------------------
+*.log
+.cache/
+coverage/
