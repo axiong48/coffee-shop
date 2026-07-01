@@ -1,5 +1,5 @@
-import { createContext, useContext, useEffect, useState } from "react";
-import { apiRequest } from "../api";
+import { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { api } from "../api";
 
 const AuthContext = createContext(null);
 
@@ -7,38 +7,46 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  async function refreshUser() {
-    const data = await apiRequest("/auth/me");
-    setUser(data.user);
-  }
-
-  async function login(email, password) {
-    const data = await apiRequest("/auth/login", {
-      method: "POST",
-      body: JSON.stringify({ email, password }),
-    });
-    setUser(data.user);
-  }
-
-  async function register(name, email, password) {
-    const data = await apiRequest("/auth/register", {
-      method: "POST",
-      body: JSON.stringify({ name, email, password }),
-    });
-    setUser(data.user);
-  }
-
-  async function logout() {
-    await apiRequest("/auth/logout", { method: "POST" });
-    setUser(null);
-  }
-
   useEffect(() => {
-    refreshUser().finally(() => setLoading(false));
+    api
+      .get("/auth/me")
+      .then((u) => setUser(u))
+      .catch(() => setUser(null))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const login = useCallback(async (email, password) => {
+    const u = await api.post("/auth/login", { email, password });
+    setUser(u);
+    return u;
+  }, []);
+
+  const signup = useCallback(async (payload) => {
+    const u = await api.post("/auth/signup", payload);
+    setUser(u);
+    return u;
+  }, []);
+
+  const logout = useCallback(async () => {
+    try {
+      await api.post("/auth/logout", {});
+    } catch (err) {
+      // Even if this fails (e.g. session already expired server-side),
+      // we still want the UI to reflect logged-out state.
+      console.error("Logout request failed:", err);
+    } finally {
+      setUser(null);
+    }
+  }, []);
+
+  const refreshUser = useCallback(async () => {
+    const u = await api.get("/auth/me");
+    setUser(u);
+    return u;
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, refreshUser }}>
+    <AuthContext.Provider value={{ user, loading, login, signup, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );
