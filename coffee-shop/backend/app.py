@@ -45,7 +45,6 @@ def create_app():
         if origin in allowed_origins:
             return True
 
-        # Allows Vercel production + preview URLs
         if origin.endswith(".vercel.app"):
             return True
 
