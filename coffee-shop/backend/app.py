@@ -116,6 +116,18 @@ def add_cors_headers(response):
 
     return app
 
+def is_allowed_origin(origin):
+    if not origin:
+        return False
+
+    if origin in allowed_origins:
+        return True
+
+    if origin.endswith(".vercel.app"):
+        return True
+
+    return False
+
 
 app = create_app()
 
