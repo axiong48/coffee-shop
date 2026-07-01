@@ -1,6 +1,6 @@
 import os
 from dotenv import load_dotenv
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 from extensions import db, login_manager, cors
 from models import User
 
@@ -35,19 +35,34 @@ def create_app():
     allowed_origins = [
         "http://localhost:5173",
         "http://127.0.0.1:5173",
+        "https://coffee-shop-one-khaki.vercel.app",
         frontend_url,
     ]
-
+    
     cors.init_app(
         app,
         supports_credentials=True,
         resources={
             r"/api/*": {
                 "origins": allowed_origins,
+                "methods": ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+                "allow_headers": ["Content-Type"],
                 "supports_credentials": True,
             }
         },
     )
+    
+    @app.after_request
+    def add_cors_headers(response):
+        origin = request.headers.get("Origin")
+    
+        if origin in allowed_origins:
+            response.headers["Access-Control-Allow-Origin"] = origin
+            response.headers["Access-Control-Allow-Credentials"] = "true"
+            response.headers["Access-Control-Allow-Headers"] = "Content-Type"
+            response.headers["Access-Control-Allow-Methods"] = "GET, POST, PATCH, DELETE, OPTIONS"
+    
+        return response
     
 
     @login_manager.user_loader
