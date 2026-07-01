@@ -10,23 +10,23 @@ from models import User, Location, MenuItem, CustomizationOption
 app = create_app()
 
 with app.app_context():
-    db.drop_all()
     db.create_all()
 
-    # Locations
+    if User.query.filter_by(email="owner@coffee.com").first():
+        print("Database already seeded. Owner account already exists.")
+        exit()
+
     downtown = Location(name="Downtown", address="123 Main St")
     campus = Location(name="Campus", address="456 University Ave")
     db.session.add_all([downtown, campus])
     db.session.commit()
 
-    # Menu items
     latte = MenuItem(name="Latte", description="Espresso with steamed milk", base_price=4.50, category="drink")
     cold_brew = MenuItem(name="Cold Brew", description="Slow-steeped, served cold", base_price=4.00, category="drink")
     croissant = MenuItem(name="Croissant", description="Buttery, flaky", base_price=3.25, category="food")
     db.session.add_all([latte, cold_brew, croissant])
     db.session.commit()
 
-    # Customizations
     customizations = [
         CustomizationOption(menu_item_id=latte.id, group_name="Size", choice_label="Small", price_delta=0.0),
         CustomizationOption(menu_item_id=latte.id, group_name="Size", choice_label="Large", price_delta=0.75),
@@ -38,7 +38,6 @@ with app.app_context():
     db.session.add_all(customizations)
     db.session.commit()
 
-    # Demo accounts (password is the same as the role name, for convenience)
     owner = User(email="owner@coffee.com", name="Owner Olivia", role="owner")
     owner.set_password("owner123")
 
@@ -52,9 +51,6 @@ with app.app_context():
     db.session.commit()
 
     print("Seeded database with:")
-    print("  Locations: Downtown, Campus")
-    print("  Menu items: Latte, Cold Brew, Croissant (with customizations)")
-    print("  Accounts:")
-    print("    owner@coffee.com / owner123")
-    print("    barista@coffee.com / barista123  (assigned to Downtown)")
-    print("    customer@coffee.com / customer123")
+    print("owner@coffee.com / owner123")
+    print("barista@coffee.com / barista123")
+    print("customer@coffee.com / customer123")

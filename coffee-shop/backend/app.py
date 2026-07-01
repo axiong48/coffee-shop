@@ -1,35 +1,50 @@
 import os
+from dotenv import load_dotenv
 from flask import Flask, jsonify
 from extensions import db, login_manager, cors
 from models import User
+
+load_dotenv()
 
 
 def create_app():
     app = Flask(__name__)
 
     base_dir = os.path.abspath(os.path.dirname(__file__))
-    app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{os.path.join(base_dir, 'coffee.db')}"
+
+    database_url = os.environ.get("DATABASE_URL")
+
+    if database_url and database_url.startswith("postgres://"):
+        database_url = database_url.replace("postgres://", "postgresql://", 1)
+
+    app.config["SQLALCHEMY_DATABASE_URI"] = database_url or f"sqlite:///{os.path.join(base_dir, 'coffee.db')}"
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-change-in-production")
 
-    # 127.0.0.1:5173 and 127.0.0.1:5000 are "same-site" (same registrable
-    # domain, different port) so Lax works here and doesn't require HTTPS.
-    # NOTE: SameSite=None without Secure gets silently dropped by browsers
-    # over plain HTTP - that combination is what broke login earlier.
-    app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
-    app.config["SESSION_COOKIE_SECURE"] = False  # set True once served over HTTPS in production
+    is_production = os.environ.get("FLASK_ENV") == "production"
+
+    app.config["SESSION_COOKIE_SAMESITE"] = "None" if is_production else "Lax"
+    app.config["SESSION_COOKIE_SECURE"] = True if is_production else False
+    app.config["SESSION_COOKIE_HTTPONLY"] = True
 
     db.init_app(app)
     login_manager.init_app(app)
+
+    frontend_url = os.environ.get("FRONTEND_URL", "http://localhost:5173")
+
     cors.init_app(
         app,
         supports_credentials=True,
-        origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+        origins=[
+            "http://localhost:5173",
+            "http://127.0.0.1:5173",
+            frontend_url,
+        ],
     )
 
     @login_manager.user_loader
     def load_user(user_id):
-        return User.query.get(int(user_id))
+        return db.session.get(User, int(user_id))
 
     @login_manager.unauthorized_handler
     def unauthorized():
@@ -52,8 +67,11 @@ def create_app():
     return app
 
 
+app = create_app()
+
+
 if __name__ == "__main__":
-    app = create_app()
     with app.app_context():
         db.create_all()
-    app.run(debug=True, port=5000)
+
+    app.run(host="0.0.0.0", port=5001, debug=True)
