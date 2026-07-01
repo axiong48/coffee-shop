@@ -21,6 +21,8 @@ def checkout():
     location_id = data.get("location_id")
     cart_items = data.get("items", [])
     redeem_points = int(data.get("redeem_points") or 0)
+    # Capture promo code from the request
+    promo_code = data.get("promo_code", "").strip().upper()
 
     if not location_id or not cart_items:
         return jsonify({"error": "location_id and at least one item are required"}), 400
@@ -64,8 +66,16 @@ def checkout():
 
         subtotal += unit_price * quantity
 
-    discount = min(redeem_points * POINT_VALUE_IN_DOLLARS, subtotal)
-    total = round(subtotal - discount, 2)
+    # --- PROMO LOGIC ---
+    promo_discount = 0.0
+    if promo_code == "GRANDOPENING":
+        promo_discount = subtotal * 0.15
+
+    # Points discount is calculated against the total AFTER the promo discount is applied
+    points_discount = min(redeem_points * POINT_VALUE_IN_DOLLARS, subtotal - promo_discount)
+    total = round(subtotal - promo_discount - points_discount, 2)
+    # -------------------
+
     points_earned = int(total * POINTS_PER_DOLLAR)
 
     order.total = total

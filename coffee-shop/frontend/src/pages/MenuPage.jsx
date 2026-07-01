@@ -46,6 +46,18 @@ export default function MenuPage() {
       {error && <div className="error-banner">{error}</div>}
       {added && <div className="success-banner">{added}</div>}
 
+      <div style={{
+        background: "var(--accent)", 
+        color: "white", 
+        padding: "12px", 
+        borderRadius: "8px", 
+        textAlign: "center",
+        fontWeight: "bold",
+        marginBottom: "20px"
+      }}>
+        🎉 Grand Opening! Use code GRANDOPENING at checkout for 15% off your order!
+      </div>
+
       <div className="grid">
         {menu.map((item) => (
           <div key={item.id} className={`card menu-item-card ${!item.available ? "unavailable" : ""}`}>
