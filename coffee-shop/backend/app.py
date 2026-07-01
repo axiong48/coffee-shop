@@ -33,11 +33,12 @@ def create_app():
     frontend_url = os.environ.get("FRONTEND_URL", "http://localhost:5173")
     
     allowed_origins = [
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-        "https://coffee-shop-one-khaki.vercel.app",
-        frontend_url,
-    ]
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "https://coffee-shop-one-khaki.vercel.app",
+    "https://coffee-shop-r5iexhsnd-axiong48s-projects.vercel.app",
+    frontend_url,
+]
     
     cors.init_app(
         app,
