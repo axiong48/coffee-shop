@@ -31,16 +31,24 @@ def create_app():
     login_manager.init_app(app)
 
     frontend_url = os.environ.get("FRONTEND_URL", "http://localhost:5173")
+    
+    allowed_origins = [
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        frontend_url,
+    ]
 
     cors.init_app(
         app,
         supports_credentials=True,
-        origins=[
-            "http://localhost:5173",
-            "http://127.0.0.1:5173",
-            frontend_url,
-        ],
+        resources={
+            r"/api/*": {
+                "origins": allowed_origins,
+                "supports_credentials": True,
+            }
+        },
     )
+    
 
     @login_manager.user_loader
     def load_user(user_id):
