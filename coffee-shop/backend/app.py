@@ -33,64 +33,49 @@ def create_app():
     frontend_url = os.environ.get("FRONTEND_URL", "http://localhost:5173")
 
     allowed_origins = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-    frontend_url,
-]
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        frontend_url,
+    ]
 
-def is_allowed_origin(origin):
-    if not origin:
+    def is_allowed_origin(origin):
+        if not origin:
+            return False
+
+        if origin in allowed_origins:
+            return True
+
+        # Allows Vercel production + preview URLs
+        if origin.endswith(".vercel.app"):
+            return True
+
         return False
 
-    if origin in allowed_origins:
-        return True
+    cors.init_app(
+        app,
+        supports_credentials=True,
+        resources={
+            r"/api/*": {
+                "origins": allowed_origins,
+                "methods": ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+                "allow_headers": ["Content-Type", "Authorization"],
+                "supports_credentials": True,
+            }
+        },
+    )
 
-    # Allow all Vercel preview/production URLs
-    if origin.endswith(".vercel.app"):
-        return True
-
-    return False
-
-
-cors.init_app(
-    app,
-    supports_credentials=True,
-    resources={
-        r"/api/*": {
-            "origins": "*",
-            "methods": ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
-            "allow_headers": ["Content-Type", "Authorization"],
-            "supports_credentials": True,
-        }
-    },
-)
-
-
-@app.after_request
-def add_cors_headers(response):
-    origin = request.headers.get("Origin")
-
-    if is_allowed_origin(origin):
-        response.headers["Access-Control-Allow-Origin"] = origin
-        response.headers["Access-Control-Allow-Credentials"] = "true"
-        response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
-        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PATCH, DELETE, OPTIONS"
-        response.headers["Vary"] = "Origin"
-
-    return response
-    
     @app.after_request
     def add_cors_headers(response):
         origin = request.headers.get("Origin")
-    
-        if origin in allowed_origins:
+
+        if is_allowed_origin(origin):
             response.headers["Access-Control-Allow-Origin"] = origin
             response.headers["Access-Control-Allow-Credentials"] = "true"
-            response.headers["Access-Control-Allow-Headers"] = "Content-Type"
+            response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
             response.headers["Access-Control-Allow-Methods"] = "GET, POST, PATCH, DELETE, OPTIONS"
-    
+            response.headers["Vary"] = "Origin"
+
         return response
-    
 
     @login_manager.user_loader
     def load_user(user_id):
@@ -110,23 +95,15 @@ def add_cors_headers(response):
     app.register_blueprint(orders_bp)
     app.register_blueprint(owner_bp)
 
+    @app.route("/")
+    def index():
+        return jsonify({"message": "Coffee shop backend is running"})
+
     @app.route("/api/health")
     def health():
         return jsonify({"status": "ok"})
 
     return app
-
-def is_allowed_origin(origin):
-    if not origin:
-        return False
-
-    if origin in allowed_origins:
-        return True
-
-    if origin.endswith(".vercel.app"):
-        return True
-
-    return False
 
 
 app = create_app()
