@@ -1,330 +1,106 @@
-# Coffee Shop Website
+#Coffee Shop Ordering App
 
-A local full-stack coffee shop web app built with React, Flask, and PostgreSQL.
+A full-stack web app for online coffee ordering with three roles: Customer, Barista, and Owner.
 
-Users can register, log in, browse coffee products, add products to a cart, checkout without real payment, view order history, and leave reviews.
+## Stack
+- **Backend:** Flask, SQLAlchemy (SQLite), Flask-Login (session auth), Werkzeug password hashing
+- **Frontend:** React (Vite), React Router
 
-Admins can add products, edit products, delete products, and view all orders.
+## Features implemented
+- Signup/login with hashed & salted passwords, session-based auth
+- **Customer:** browse menu by location, customize items (size/milk/etc.), multi-item cart, checkout,
+  order history, rewards points (earn on purchase, redeem at checkout)
+- **Barista:** order queue scoped to their assigned location, advance order status
+  (pending → in progress → ready → picked up), polls every 5s for new orders
+- **Owner:** full menu CRUD (price, availability, customizations), location management,
+  analytics dashboard (revenue by location, top-selling items), can also see the barista queue
+- `price_at_purchase` is frozen server-side at checkout so later price changes never
+  retroactively affect past orders
+- Prices are always recalculated server-side at checkout — the client never dictates price
 
----
+## Local setup
 
-## Tech Stack
+### Backend
+```bash
+cd backend
+pip install -r requirements.txt
+python seed.py        # creates DB + demo accounts + sample menu
+python app.py          # runs on http://127.0.0.1:5000
+```
 
-- React
-- Vite
-- Flask
-- PostgreSQL
-- Flask-Login
-- Flask-SQLAlchemy
-- Flask-Migrate
+### Frontend
+```bash
+cd frontend
+npm install
+npm run dev             # runs on http://127.0.0.1:5173
+```
 
----
+Open http://127.0.0.1:5173. Demo accounts (from seed.py):
+| Role | Email | Password |
+|---|---|---|
+| Owner | owner@coffee.com | owner123 |
+| Barista (Downtown) | barista@coffee.com | barista123 |
+| Customer | customer@coffee.com | customer123 |
 
-## Project Structure
+## Deploying live (required by the assignment)
 
-coffee-shop/
+You need both pieces hosted publicly. Fastest path given your deadline:
+
+**Backend — Render.com (free tier, no credit card needed for basic web service):**
+1. Push this repo to GitHub.
+2. On Render: New → Web Service → connect repo, root directory `backend`.
+3. Build command: `pip install -r requirements.txt && python seed.py`
+4. Start command: `gunicorn app:create_app()` — add `gunicorn` to requirements.txt first
+   (`pip install gunicorn` and append to requirements.txt), since Flask's dev server
+   shouldn't be used in production.
+5. Set env var `SECRET_KEY` to a random string.
+6. **Important:** SQLite on Render's free tier is not persistent across deploys/restarts —
+   fine for a demo, but if you want data to survive, swap to Render's free Postgres
+   and change `SQLALCHEMY_DATABASE_URI` accordingly.
+7. In `app.py`, set `SESSION_COOKIE_SECURE = True` once you're on HTTPS (Render gives you
+   HTTPS by default) — cross-site cookies require `Secure` + `SameSite=None` together.
+
+**Frontend — Vercel or Netlify (free, fastest):**
+1. In `frontend/src/api.js`, change `BASE_URL` to your deployed backend URL.
+2. In `backend/app.py`, update the `cors.init_app(...)` origins list to your deployed frontend URL.
+3. Connect the repo on Vercel/Netlify, root directory `frontend`, build command `npm run build`,
+   output directory `dist`.
+
+Do this early — CORS/cookie issues between two different domains are the most common
+last-minute deploy headache, so test the live URLs together well before your 10am demo,
+not right before.
+
+## Project structure
+```
 backend/
-app/
-migrations/
-.env
-.env.example
-requirements.txt
-run.py
-seed.py
+  app.py              # app factory, blueprint registration
+  models.py            # 7 SQLAlchemy models (User, Location, MenuItem,
+                        #   CustomizationOption, Order, OrderItem, OrderItemCustomization)
+  decorators.py         # role_required() access control
+  seed.py               # demo data
+  routes/
+    auth.py             # signup/login/logout/me
+    menu.py              # public menu/location browsing
+    orders.py            # checkout, order history, barista/owner queue, status updates
+    owner.py             # menu/location CRUD, analytics
 
 frontend/
-src/
-package.json
-vite.config.js
-
-README.md
-.gitignore
-
----
-
-## Requirements
-
-Before running the project, make sure you have these installed:
-
-- Node.js
-- npm
-- Python 3
-- PostgreSQL
-- Homebrew, if you are on Mac
-
-Check your versions:
-
-node -v
-npm -v
-python3 --version
-psql --version
-
----
-
-## PostgreSQL Setup Without Docker
-
-Install PostgreSQL:
-
-brew install postgresql@16 | pip install postgresql@16
-
-Start PostgreSQL:
-
-brew services start postgresql@16 | pip
-
-Check that PostgreSQL is working:
-
-psql --version
-
-Create the local database:
-
-createdb coffee_shop
-
-Check that the database exists:
-
-psql -l
-
-Press q to exit the database list screen.
-
----
-
-## Backend Setup
-
-Go into the backend folder:
-
-cd backend
-
-Create a Python virtual environment:
-
-python3 -m venv venv
-
-Activate the virtual environment:
-
-source venv/bin/activate
-
-You should see (venv) at the front of your terminal.
-
-Install backend packages:
-
-pip install -r requirements.txt
-
-Create your local environment file:
-
-cp .env.example .env
-
-Your .env file should look like this:
-
-DATABASE_URL=postgresql://localhost/coffee_shop
-SECRET_KEY=dev-secret-key
-FLASK_ENV=development
-
----
-
-## Database Tables and Seed Data
-
-Run the database migrations:
-
-flask --app run.py db init
-flask --app run.py db migrate -m "initial tables"
-flask --app run.py db upgrade
-
-Add starter data:
-
-python seed.py
-
-This creates starter coffee products and an admin account.
-
-Admin login:
-
-Email: admin@coffee.com
-Password: admin123
-
----
-
-## Run the Backend
-
-Inside the backend folder, with (venv) activated, run:
-
-python run.py
-
-The backend should run at:
-
-http://127.0.0.1:5000
-
-Test these routes in the browser:
-
-http://127.0.0.1:5000/api/health
-http://127.0.0.1:5000/api/products
-
-The root backend URL may show Not Found. That is normal because the Flask backend is only for API routes.
-
----
-
-## Frontend Setup
-
-Open a new terminal tab.
-
-Go into the frontend folder:
-
-cd frontend
-
-Install frontend packages:
-
-npm install
-
-Run the React frontend:
-
-npm run dev
-
-The frontend should run at:
-
-http://localhost:5173
-
----
-
-## Local Development URLs
-
-Frontend:
-
-http://localhost:5173
-
-Backend:
-
-http://127.0.0.1:5000
-
-The React frontend is the actual website.
-
-The Flask backend is the API that sends and receives data.
-
----
-
-## Sharing on Local Wi-Fi
-
-To let another laptop on the same Wi-Fi view the project, you need your local IP address.
-
-On Mac, run:
-
-ipconfig getifaddr en0
-
-Example result:
-
-192.168.1.25
-
-The other laptop can open:
-
-http://192.168.1.25:5173
-
-For backend sharing, Flask needs to run on all network interfaces.
-
-In backend/run.py, use:
-
-app.run(host="0.0.0.0", port=5000, debug=True)
-
-Then other laptops can reach the backend at:
-
-http://192.168.1.25:5000
-
-Replace 192.168.1.25 with your real local IP address.
-
----
-
-## Common Commands
-
-Activate backend virtual environment:
-
-cd backend
-source venv/bin/activate
-
-Run backend:
-
-python run.py
-
-Run frontend:
-
-cd frontend
-npm run dev
-
-Stop a running server:
-
-Control + C
-
-Start PostgreSQL:
-
-brew services start postgresql@16
-
-Stop PostgreSQL:
-
-brew services stop postgresql@16
-
----
-
-## Common Problems
-
-### Flask says Not Found
-
-If you open this:
-
-http://localhost:5000/
-
-You may see Not Found.
-
-That is normal. The backend only has API routes.
-
-Use:
-
-http://127.0.0.1:5000/api/health
-http://127.0.0.1:5000/api/products
-
----
-
-### Access to localhost was denied / 403
-
-Try using:
-
-http://127.0.0.1:5000/api/health
-
-instead of:
-
-http://localhost:5000
-
-Also make sure you are not opening an admin route before logging in.
-
----
-
-### psycopg2 or pg_config error
-
-Install PostgreSQL first:
-
-brew install postgresql@16
-brew services start postgresql@16
-
-Then delete and recreate the virtual environment:
-
-rm -rf venv
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-
----
-
-### Database does not exist
-
-Create it:
-
-createdb coffee_shop
-
----
-
-### Virtual Environment Reminder
-
-Backend uses a virtual environment:
-
-source venv/bin/activate
-
-Frontend does not use a virtual environment.
-
-Simple rule:
-
-Backend Flask = use venv
-Frontend React = no venv
-PostgreSQL = no venv
-EOF
+  src/
+    api.js               # fetch wrapper (credentials included for session cookies)
+    context/
+      AuthContext.jsx     # current user + role
+      CartContext.jsx      # in-progress cart state
+    components/
+      Navbar.jsx, ProtectedRoute.jsx, CustomizeModal.jsx
+    pages/
+      Home, Login, Signup
+      MenuPage, CartPage, OrderHistoryPage          (customer)
+      BaristaQueuePage                                (barista)
+      OwnerMenuPage, OwnerLocationsPage, OwnerAnalyticsPage  (owner)
+```
+
+## Not yet implemented (optional stretch ideas if you have time)
+- Live WebSocket push for order status (currently uses polling every 5-6s, which works
+  fine for a demo but isn't true real-time)
+- Staff invite flow for creating barista accounts through the UI (currently done via
+  signup with role override, or directly in seed.py)
